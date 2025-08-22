@@ -1,0 +1,31 @@
+{
+  "name": "youtube-tools-mcp",
+  "version": "1.0.0",
+  "description": "MCP server for YouTube tools including transcript extraction",
+  "main": "build/index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node build/index.js",
+    "test": "node temp/test-transcript.js",
+    "test-mcp": "node temp/test-mcp-server.js",
+    "prepare": "npm run build"
+  },
+  "keywords": [
+    "mcp",
+    "youtube",
+    "transcript",
+    "model-context-protocol"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "youtube-transcript": "^1.2.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  }
+}
