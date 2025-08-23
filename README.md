@@ -1,26 +1,30 @@
 # YouTube Tools MCP Server
 
-A powerful Model Context Protocol (MCP) server that enables AI assistants to extract and work with YouTube video transcripts. Built with TypeScript and designed for seamless integration with Claude Desktop and other MCP-compatible clients.
+A powerful Model Context Protocol (MCP) server that enables AI assistants to search YouTube and extract video transcripts. Built with TypeScript and designed for seamless integration with Claude Desktop and other MCP-compatible clients.
 
 ## 🎯 What is this?
 
-This MCP server bridges the gap between AI assistants and YouTube content by providing transcript extraction capabilities. It allows you to:
+This MCP server bridges the gap between AI assistants and YouTube content by providing comprehensive YouTube integration capabilities. It allows you to:
 
-- Extract full transcripts from any YouTube video (when available)
-- Get timestamped transcript segments for precise referencing
-- Support multiple languages for international content
-- Handle various YouTube URL formats automatically
+- **Search YouTube videos** using the official YouTube Data API v3
+- **Extract full transcripts** from any YouTube video (when available)
+- **Filter search results** by date, duration, quality, and more
+- **Get timestamped transcript segments** for precise referencing
+- **Support multiple languages** for international content
+- **Handle various YouTube URL formats** automatically
 
-Perfect for content analysis, research, accessibility, and AI-powered video content workflows.
+Perfect for content discovery, analysis, research, accessibility, and AI-powered video content workflows.
 
 ## ✨ Features
 
+- **🔍 YouTube Video Search**: Search YouTube using the official YouTube Data API v3
 - **🎬 YouTube Transcript Extraction**: Get complete transcripts from YouTube videos using RapidAPI
+- **🎯 Advanced Search Filters**: Filter by date, duration, quality, view count, and more
 - **🔗 Flexible Input Formats**: Supports video IDs, full URLs, short URLs, and embed URLs
 - **🌍 Multi-Language Support**: Extract transcripts in different languages when available
 - **⚡ Smart Error Handling**: Comprehensive error handling with clear, actionable messages
 - **🛠️ MCP Protocol Compliant**: Built with the official MCP SDK for maximum compatibility
-- **🔑 RapidAPI Integration**: Reliable transcript service with API key authentication
+- **🔑 Official API Integration**: Uses YouTube Data API v3 and RapidAPI for reliable service
 - **💻 CLI Tool Included**: Command-line interface for direct transcript extraction
 
 ## 🚀 Quick Start
@@ -30,6 +34,8 @@ Perfect for content analysis, research, accessibility, and AI-powered video cont
 - Node.js 18+
 - pnpm (recommended) or npm
 - Claude Desktop (for usage)
+- **YouTube Data API v3 Key** (for search functionality)
+- **RapidAPI Account** (for transcript extraction)
 
 ### Installation
 
@@ -40,16 +46,25 @@ Perfect for content analysis, research, accessibility, and AI-powered video cont
    pnpm install
    ```
 
-2. **Set up RapidAPI:**
+2. **Set up API Keys:**
+
+   **YouTube Data API v3 (for search):**
+   - Go to [Google Cloud Console](https://console.cloud.google.com/)
+   - Create a new project or select existing one
+   - Enable the YouTube Data API v3
+   - Create credentials (API key)
+   - Copy your YouTube API key
+
+   **RapidAPI (for transcripts):**
    - Go to [RapidAPI YouTube Transcripts](https://rapidapi.com/8v2FWW4H6AmKw89/api/youtube-transcripts)
    - Subscribe to the API (free tier available)
    - Copy your RapidAPI key
 
 3. **Configure environment:**
    ```bash
-   cp .env.example .env
-   # Edit .env and add your RapidAPI key:
-   # RAPIDAPI_KEY=your_rapidapi_key_here
+   # Create .env file and add your API keys:
+   YOUTUBE_API_KEY=your_youtube_api_key_here
+   RAPIDAPI_KEY=your_rapidapi_key_here
    ```
 
 4. **Build the project:**
@@ -114,23 +129,40 @@ node cli.js --help
 
 ## 📖 Usage Examples
 
-Once configured with Claude Desktop, you can use natural language to interact with YouTube videos:
+Once configured with Claude Desktop, you can use natural language to interact with YouTube:
 
-### Basic Examples
+### Search Examples
 
-**Check if video has captions:**
+**Basic search:**
 ```
-"Check if this YouTube video has captions: https://www.youtube.com/watch?v=2nkiHeoPTqQ"
+"Search YouTube for 'javascript tutorial' videos"
+```
+
+**Search with filters:**
+```
+"Find recent React tutorials from the last month, ordered by view count"
+```
+
+**Search for specific content:**
+```
+"Search for Python programming videos that are medium length and high definition"
+```
+
+### Transcript Examples
+
+**Get transcript from URL:**
+```
+"Get the transcript for this YouTube video: https://www.youtube.com/watch?v=2nkiHeoPTqQ"
 ```
 
 **Use just the video ID:**
 ```
-"Does YouTube video ID 2nkiHeoPTqQ have transcripts available?"
+"Extract transcript from YouTube video ID 2nkiHeoPTqQ"
 ```
 
-**Get video information:**
+**Specify language:**
 ```
-"What information can you tell me about this YouTube video: https://www.youtube.com/watch?v=example"
+"Get the Spanish transcript for this video: https://www.youtube.com/watch?v=example"
 ```
 
 **Works with different URL formats:**
@@ -141,38 +173,61 @@ Once configured with Claude Desktop, you can use natural language to interact wi
 
 ## 🔧 Available Tools
 
-### `get_youtube_transcript`
+### `search_youtube`
 
-The main tool for checking YouTube video caption availability using the official YouTube Data API v3.
+Search for YouTube videos using the official YouTube Data API v3.
 
 **Parameters:**
-- `videoId` (required): YouTube video ID or any YouTube URL format
-- `language` (optional): Language preference (currently informational only)
+- `query` (required): Search query for YouTube videos
+- `maxResults` (optional): Maximum number of results to return (1-50, default: 10)
+- `order` (optional): Order of results - "relevance", "date", "rating", "viewCount", "title" (default: "relevance")
+- `publishedAfter` (optional): Return videos published after this date (RFC 3339 format)
+- `publishedBefore` (optional): Return videos published before this date (RFC 3339 format)
+- `videoDuration` (optional): Filter by duration - "any", "short", "medium", "long" (default: "any")
+- `videoDefinition` (optional): Filter by definition - "any", "high", "standard" (default: "any")
 
 **Sample Output:**
 ```
-YouTube Video Information:
-📹 Title: Example Video Title
-👤 Channel: Example Channel
-📅 Published: 1/15/2024
-📝 Description: This is an example video description...
+YouTube Search Results for: "javascript tutorial"
+📊 Total Results Available: 1000000
+📋 Results Returned: 3
+🔄 Ordered by: relevance
 
-✅ Captions Available (2 track(s)):
+--- SEARCH RESULTS ---
+1. **JavaScript Tutorial for Beginners**
+   📺 Channel: Programming with Mosh
+   📅 Published: 1/15/2023
+   🔗 URL: https://www.youtube.com/watch?v=W6NZfCO5SIk
+   📝 Video ID: W6NZfCO5SIk
+   📄 Description: Learn JavaScript fundamentals in this comprehensive tutorial...
 
-1. Language: en (English)
-   • Track Kind: standard
-   • Auto-generated: No
-   • Last Updated: 1/15/2024
+2. **Modern JavaScript Course**
+   📺 Channel: The Net Ninja
+   📅 Published: 3/22/2023
+   🔗 URL: https://www.youtube.com/watch?v=iWOYAxlnaww
+   📝 Video ID: iWOYAxlnaww
+   📄 Description: Master modern JavaScript with this complete course...
+```
 
-2. Language: en (English (auto-generated))
-   • Track Kind: ASR
-   • Auto-generated: Yes
+### `get_youtube_transcript`
 
-⚠️  Note: While captions are available for this video, downloading the actual transcript content requires OAuth 2.0 authentication, which is not supported in this MCP server to keep it simple for users.
+Extract complete transcripts from YouTube videos using RapidAPI.
 
-To get the full transcript, you would need to:
-• Use YouTube's official API with OAuth authentication
-• Or use YouTube's web interface to view/copy captions manually
+**Parameters:**
+- `videoId` (required): YouTube video ID or any YouTube URL format
+- `language` (optional): Language code for transcript (e.g., "en", "es", "fr", default: "en")
+
+**Sample Output:**
+```
+YouTube Transcript for Video ID: W6NZfCO5SIk
+📊 Total Segments: 245
+⏱️ Duration: 1:23:45
+
+--- TRANSCRIPT ---
+[0:00] Welcome to this JavaScript tutorial for beginners
+[0:05] In this video we're going to learn the fundamentals
+[0:12] Let's start with variables and data types
+...
 ```
 
 ## 🛠️ Development
@@ -184,6 +239,8 @@ To get the full transcript, you would need to:
 - `pnpm start` - Run the compiled server directly
 - `pnpm run test` - Test YouTube transcript functionality
 - `pnpm run test-mcp` - Test MCP server functionality
+- `pnpm run test-search` - Test YouTube search API functionality
+- `pnpm run test-mcp-search` - Test MCP server with search functionality
 
 ### Project Structure
 
@@ -205,8 +262,14 @@ Test the server functionality:
 # Test YouTube transcript extraction
 pnpm run test
 
+# Test YouTube search API
+pnpm run test-search
+
 # Test MCP server protocol
 pnpm run test-mcp
+
+# Test MCP server with search functionality
+pnpm run test-mcp-search
 
 # Manual server test (runs until Ctrl+C)
 pnpm start

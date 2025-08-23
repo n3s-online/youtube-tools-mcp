@@ -92,6 +92,58 @@ class YouTubeToolsServer {
               required: ["videoId"],
             },
           },
+          {
+            name: "search_youtube",
+            description:
+              "Search for YouTube videos using the YouTube Data API v3",
+            inputSchema: {
+              type: "object",
+              properties: {
+                query: {
+                  type: "string",
+                  description: "Search query for YouTube videos",
+                },
+                maxResults: {
+                  type: "number",
+                  description:
+                    "Maximum number of results to return (1-50, default: 10)",
+                  default: 10,
+                  minimum: 1,
+                  maximum: 50,
+                },
+                order: {
+                  type: "string",
+                  description:
+                    "Order of results (relevance, date, rating, viewCount, title)",
+                  enum: ["relevance", "date", "rating", "viewCount", "title"],
+                  default: "relevance",
+                },
+                publishedAfter: {
+                  type: "string",
+                  description:
+                    "Return videos published after this date (RFC 3339 format, e.g., '2023-01-01T00:00:00Z')",
+                },
+                publishedBefore: {
+                  type: "string",
+                  description:
+                    "Return videos published before this date (RFC 3339 format, e.g., '2024-01-01T00:00:00Z')",
+                },
+                videoDuration: {
+                  type: "string",
+                  description: "Filter by video duration",
+                  enum: ["any", "short", "medium", "long"],
+                  default: "any",
+                },
+                videoDefinition: {
+                  type: "string",
+                  description: "Filter by video definition",
+                  enum: ["any", "high", "standard"],
+                  default: "any",
+                },
+              },
+              required: ["query"],
+            },
+          },
         ],
       };
     });
@@ -103,6 +155,8 @@ class YouTubeToolsServer {
       try {
         if (name === "get_youtube_transcript") {
           return await this.getYouTubeTranscript(args);
+        } else if (name === "search_youtube") {
+          return await this.searchYouTube(args);
         } else {
           throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${name}`);
         }
@@ -268,6 +322,149 @@ class YouTubeToolsServer {
       throw new McpError(
         ErrorCode.InternalError,
         `Failed to fetch transcript: ${errorMessage}`
+      );
+    }
+  }
+
+  private async searchYouTube(args: any) {
+    const {
+      query,
+      maxResults = 10,
+      order = "relevance",
+      publishedAfter,
+      publishedBefore,
+      videoDuration = "any",
+      videoDefinition = "any",
+    } = args;
+
+    if (!query) {
+      throw new McpError(
+        ErrorCode.InvalidParams,
+        "query parameter is required"
+      );
+    }
+
+    // Check for YouTube API key
+    const youtubeApiKey = process.env.YOUTUBE_API_KEY;
+    if (!youtubeApiKey) {
+      throw new McpError(
+        ErrorCode.InternalError,
+        "YouTube API key not found. Please set YOUTUBE_API_KEY in your .env file. Get your key from: https://console.cloud.google.com/"
+      );
+    }
+
+    try {
+      // Build search parameters
+      const searchParams = new URLSearchParams({
+        part: "snippet",
+        type: "video",
+        q: query,
+        maxResults: maxResults.toString(),
+        order: order,
+        key: youtubeApiKey,
+      });
+
+      // Add optional parameters
+      if (publishedAfter) {
+        searchParams.append("publishedAfter", publishedAfter);
+      }
+      if (publishedBefore) {
+        searchParams.append("publishedBefore", publishedBefore);
+      }
+      if (videoDuration !== "any") {
+        searchParams.append("videoDuration", videoDuration);
+      }
+      if (videoDefinition !== "any") {
+        searchParams.append("videoDefinition", videoDefinition);
+      }
+
+      // Make API request to YouTube Data API v3
+      const response = await axios.get(
+        `https://www.googleapis.com/youtube/v3/search?${searchParams.toString()}`
+      );
+
+      const searchResults = response.data;
+
+      if (!searchResults.items || searchResults.items.length === 0) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `No YouTube videos found for query: "${query}"`,
+            },
+          ],
+        };
+      }
+
+      // Format the results
+      const formattedResults = searchResults.items
+        .map((item: any, index: number) => {
+          const snippet = item.snippet;
+          const videoId = item.id.videoId;
+          const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
+
+          return [
+            `${index + 1}. **${snippet.title}**`,
+            `   📺 Channel: ${snippet.channelTitle}`,
+            `   📅 Published: ${new Date(
+              snippet.publishedAt
+            ).toLocaleDateString()}`,
+            `   🔗 URL: ${videoUrl}`,
+            `   📝 Video ID: ${videoId}`,
+            `   📄 Description: ${snippet.description.substring(0, 200)}${
+              snippet.description.length > 200 ? "..." : ""
+            }`,
+            "",
+          ].join("\n");
+        })
+        .join("\n");
+
+      const summary = {
+        query,
+        totalResults:
+          searchResults.pageInfo?.totalResults || searchResults.items.length,
+        resultsReturned: searchResults.items.length,
+        order,
+      };
+
+      return {
+        content: [
+          {
+            type: "text",
+            text:
+              `YouTube Search Results for: "${summary.query}"\n` +
+              `📊 Total Results Available: ${summary.totalResults}\n` +
+              `📋 Results Returned: ${summary.resultsReturned}\n` +
+              `🔄 Ordered by: ${summary.order}\n\n` +
+              `--- SEARCH RESULTS ---\n${formattedResults}`,
+          },
+        ],
+      };
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+
+      // Handle specific YouTube API errors
+      if (errorMessage.includes("403")) {
+        throw new McpError(
+          ErrorCode.InvalidParams,
+          "YouTube API access forbidden. Please check your API key and ensure the YouTube Data API v3 is enabled."
+        );
+      } else if (errorMessage.includes("400")) {
+        throw new McpError(
+          ErrorCode.InvalidParams,
+          "Invalid search parameters. Please check your query and filter options."
+        );
+      } else if (errorMessage.includes("quotaExceeded")) {
+        throw new McpError(
+          ErrorCode.InternalError,
+          "YouTube API quota exceeded. Please try again later or check your quota limits."
+        );
+      }
+
+      throw new McpError(
+        ErrorCode.InternalError,
+        `Failed to search YouTube: ${errorMessage}`
       );
     }
   }

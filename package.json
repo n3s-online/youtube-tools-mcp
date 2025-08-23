@@ -10,6 +10,8 @@
     "start": "node build/index.js",
     "test": "node temp/test-transcript.js",
     "test-mcp": "node temp/test-mcp-server.js",
+    "test-search": "node temp/test-youtube-search.js",
+    "test-mcp-search": "node temp/test-mcp-search.js",
     "cli": "node cli.js",
     "prepare": "npm run build"
   },
