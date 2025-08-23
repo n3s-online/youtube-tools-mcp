@@ -15,12 +15,13 @@ Perfect for content analysis, research, accessibility, and AI-powered video cont
 
 ## ✨ Features
 
-- **🎬 YouTube Transcript Extraction**: Get complete transcripts from YouTube videos with precise timestamps
+- **🎬 YouTube Transcript Extraction**: Get complete transcripts from YouTube videos using RapidAPI
 - **🔗 Flexible Input Formats**: Supports video IDs, full URLs, short URLs, and embed URLs
 - **🌍 Multi-Language Support**: Extract transcripts in different languages when available
 - **⚡ Smart Error Handling**: Comprehensive error handling with clear, actionable messages
 - **🛠️ MCP Protocol Compliant**: Built with the official MCP SDK for maximum compatibility
-- **📝 Formatted Output**: Clean, readable transcript format with metadata and timestamps
+- **🔑 RapidAPI Integration**: Reliable transcript service with API key authentication
+- **💻 CLI Tool Included**: Command-line interface for direct transcript extraction
 
 ## 🚀 Quick Start
 
@@ -39,12 +40,29 @@ Perfect for content analysis, research, accessibility, and AI-powered video cont
    pnpm install
    ```
 
-2. **Build the project:**
+2. **Set up RapidAPI:**
+   - Go to [RapidAPI YouTube Transcripts](https://rapidapi.com/8v2FWW4H6AmKw89/api/youtube-transcripts)
+   - Subscribe to the API (free tier available)
+   - Copy your RapidAPI key
+
+3. **Configure environment:**
+   ```bash
+   cp .env.example .env
+   # Edit .env and add your RapidAPI key:
+   # RAPIDAPI_KEY=your_rapidapi_key_here
+   ```
+
+4. **Build the project:**
    ```bash
    pnpm run build
    ```
 
-3. **Configure Claude Desktop:**
+5. **Test your setup:**
+   ```bash
+   node temp/test-rapidapi.js
+   ```
+
+6. **Configure Claude Desktop:**
 
    Add to your Claude Desktop config file (`~/Library/Application Support/Claude/claude_desktop_config.json`):
    ```json
@@ -60,12 +78,39 @@ Perfect for content analysis, research, accessibility, and AI-powered video cont
 
    **Important:** Replace `/absolute/path/to/youtube-tools-mcp` with your actual project path.
 
-4. **Restart Claude Desktop** completely.
+7. **Restart Claude Desktop** completely.
 
-5. **Test it out!** Try asking Claude:
+8. **Test it out!** Try asking Claude:
    ```
-   "Get the transcript for this YouTube video: https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+   "Get the transcript for this YouTube video: https://www.youtube.com/watch?v=2nkiHeoPTqQ"
    ```
+
+## 💻 CLI Usage
+
+You can also use the included command-line tool:
+
+```bash
+# Basic usage
+node cli.js 2nkiHeoPTqQ
+
+# With full URL
+node cli.js "https://www.youtube.com/watch?v=2nkiHeoPTqQ"
+
+# Specify language
+node cli.js 2nkiHeoPTqQ --language es
+
+# Save to file
+node cli.js 2nkiHeoPTqQ --output transcript.txt
+
+# JSON format
+node cli.js 2nkiHeoPTqQ --json
+
+# Hide timestamps
+node cli.js 2nkiHeoPTqQ --no-timestamps
+
+# Show help
+node cli.js --help
+```
 
 ## 📖 Usage Examples
 
@@ -73,19 +118,19 @@ Once configured with Claude Desktop, you can use natural language to interact wi
 
 ### Basic Examples
 
-**Extract any video transcript:**
+**Check if video has captions:**
 ```
-"Get the transcript for this YouTube video: https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+"Check if this YouTube video has captions: https://www.youtube.com/watch?v=2nkiHeoPTqQ"
 ```
 
 **Use just the video ID:**
 ```
-"Extract the transcript from YouTube video ID: dQw4w9WgXcQ"
+"Does YouTube video ID 2nkiHeoPTqQ have transcripts available?"
 ```
 
-**Request specific language:**
+**Get video information:**
 ```
-"Get the Spanish transcript for this video: https://www.youtube.com/watch?v=example"
+"What information can you tell me about this YouTube video: https://www.youtube.com/watch?v=example"
 ```
 
 **Works with different URL formats:**
@@ -98,25 +143,36 @@ Once configured with Claude Desktop, you can use natural language to interact wi
 
 ### `get_youtube_transcript`
 
-The main tool for extracting YouTube video transcripts.
+The main tool for checking YouTube video caption availability using the official YouTube Data API v3.
 
 **Parameters:**
 - `videoId` (required): YouTube video ID or any YouTube URL format
-- `language` (optional): Language code (e.g., "en", "es", "fr", "de") - defaults to "en"
+- `language` (optional): Language preference (currently informational only)
 
 **Sample Output:**
 ```
-YouTube Transcript for Video ID: dQw4w9WgXcQ
-Language: en
-Total Segments: 45
-Duration: 3:33
+YouTube Video Information:
+📹 Title: Example Video Title
+👤 Channel: Example Channel
+📅 Published: 1/15/2024
+📝 Description: This is an example video description...
 
---- TRANSCRIPT ---
-[0:00] We're no strangers to love
-[0:07] You know the rules and so do I
-[0:15] A full commitment's what I'm thinking of
-[0:22] You wouldn't get this from any other guy
-...
+✅ Captions Available (2 track(s)):
+
+1. Language: en (English)
+   • Track Kind: standard
+   • Auto-generated: No
+   • Last Updated: 1/15/2024
+
+2. Language: en (English (auto-generated))
+   • Track Kind: ASR
+   • Auto-generated: Yes
+
+⚠️  Note: While captions are available for this video, downloading the actual transcript content requires OAuth 2.0 authentication, which is not supported in this MCP server to keep it simple for users.
+
+To get the full transcript, you would need to:
+• Use YouTube's official API with OAuth authentication
+• Or use YouTube's web interface to view/copy captions manually
 ```
 
 ## 🛠️ Development
