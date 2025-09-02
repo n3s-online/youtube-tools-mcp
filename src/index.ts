@@ -11,6 +11,7 @@ import {
 import axios from "axios";
 import { readFileSync } from "fs";
 import { join } from "path";
+import { DatabaseService } from "./database.js";
 
 // Load environment variables manually to avoid stdout output
 try {
@@ -38,8 +39,10 @@ try {
 
 class YouTubeToolsServer {
   private server: Server;
+  private database: DatabaseService;
 
   constructor() {
+    this.database = new DatabaseService(process.env.DATABASE_PATH);
     this.server = new Server(
       {
         name: "youtube-tools-mcp",
@@ -62,6 +65,7 @@ class YouTubeToolsServer {
     };
 
     process.on("SIGINT", async () => {
+      await this.database.close();
       await this.server.close();
       process.exit(0);
     });
@@ -144,6 +148,38 @@ class YouTubeToolsServer {
               required: ["query"],
             },
           },
+          {
+            name: "fetchExistingVideoSummary",
+            description: "Fetch an existing video summary from the database",
+            inputSchema: {
+              type: "object",
+              properties: {
+                videoId: {
+                  type: "string",
+                  description: "YouTube video ID",
+                },
+              },
+              required: ["videoId"],
+            },
+          },
+          {
+            name: "storeVideoSummary",
+            description: "Store or update a video summary in the database",
+            inputSchema: {
+              type: "object",
+              properties: {
+                videoId: {
+                  type: "string",
+                  description: "YouTube video ID",
+                },
+                summary: {
+                  type: "string",
+                  description: "Video summary text to store",
+                },
+              },
+              required: ["videoId", "summary"],
+            },
+          },
         ],
       };
     });
@@ -157,6 +193,10 @@ class YouTubeToolsServer {
           return await this.getYouTubeTranscript(args);
         } else if (name === "search_youtube") {
           return await this.searchYouTube(args);
+        } else if (name === "fetchExistingVideoSummary") {
+          return await this.fetchExistingVideoSummary(args);
+        } else if (name === "storeVideoSummary") {
+          return await this.storeVideoSummary(args);
         } else {
           throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${name}`);
         }
@@ -469,6 +509,86 @@ class YouTubeToolsServer {
     }
   }
 
+  private async fetchExistingVideoSummary(args: any) {
+    const { videoId } = args;
+
+    if (!videoId) {
+      throw new McpError(
+        ErrorCode.InvalidParams,
+        "videoId parameter is required"
+      );
+    }
+
+    try {
+      const summary = await this.database.fetchExistingVideoSummary(videoId);
+
+      if (summary === null) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `No summary found for video ID: ${videoId}`,
+            },
+          ],
+        };
+      }
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Summary for video ID: ${videoId}\n\n${summary}`,
+          },
+        ],
+      };
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      throw new McpError(
+        ErrorCode.InternalError,
+        `Failed to fetch video summary: ${errorMessage}`
+      );
+    }
+  }
+
+  private async storeVideoSummary(args: any) {
+    const { videoId, summary } = args;
+
+    if (!videoId) {
+      throw new McpError(
+        ErrorCode.InvalidParams,
+        "videoId parameter is required"
+      );
+    }
+
+    if (!summary) {
+      throw new McpError(
+        ErrorCode.InvalidParams,
+        "summary parameter is required"
+      );
+    }
+
+    try {
+      await this.database.storeVideoSummary(videoId, summary);
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Successfully stored summary for video ID: ${videoId}`,
+          },
+        ],
+      };
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      throw new McpError(
+        ErrorCode.InternalError,
+        `Failed to store video summary: ${errorMessage}`
+      );
+    }
+  }
+
   private formatTimestamp(offsetMs: number): string {
     const totalSeconds = Math.floor(offsetMs / 1000);
     const hours = Math.floor(totalSeconds / 3600);
@@ -485,6 +605,9 @@ class YouTubeToolsServer {
   }
 
   async run(): Promise<void> {
+    // Initialize database
+    await this.database.initialize();
+
     const transport = new StdioServerTransport();
     await this.server.connect(transport);
 

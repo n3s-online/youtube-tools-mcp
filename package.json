@@ -24,6 +24,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@libsql/client": "^0.15.14",
     "@modelcontextprotocol/sdk": "^1.0.0",
     "axios": "^1.11.0",
     "commander": "^14.0.0",
