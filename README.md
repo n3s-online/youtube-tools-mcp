@@ -8,6 +8,7 @@ This MCP server bridges the gap between AI assistants and YouTube content by pro
 
 - **Search YouTube videos** using the official YouTube Data API v3
 - **Extract full transcripts** from any YouTube video (when available)
+- **Store and retrieve video summaries** using a local libsql database
 - **Filter search results** by date, duration, quality, and more
 - **Get timestamped transcript segments** for precise referencing
 - **Support multiple languages** for international content
@@ -19,6 +20,7 @@ Perfect for content discovery, analysis, research, accessibility, and AI-powered
 
 - **🔍 YouTube Video Search**: Search YouTube using the official YouTube Data API v3
 - **🎬 YouTube Transcript Extraction**: Get complete transcripts from YouTube videos using RapidAPI
+- **💾 Video Summary Storage**: Store and retrieve video summaries using local libsql database
 - **🎯 Advanced Search Filters**: Filter by date, duration, quality, view count, and more
 - **🔗 Flexible Input Formats**: Supports video IDs, full URLs, short URLs, and embed URLs
 - **🌍 Multi-Language Support**: Extract transcripts in different languages when available
@@ -65,6 +67,9 @@ Perfect for content discovery, analysis, research, accessibility, and AI-powered
    # Create .env file and add your API keys:
    YOUTUBE_API_KEY=your_youtube_api_key_here
    RAPIDAPI_KEY=your_rapidapi_key_here
+
+   # Optional: Specify custom database path for video summaries
+   DATABASE_PATH=./video_summaries.db
    ```
 
 4. **Build the project:**
@@ -85,13 +90,21 @@ Perfect for content discovery, analysis, research, accessibility, and AI-powered
      "mcpServers": {
        "youtube-tools": {
          "command": "node",
-         "args": ["/absolute/path/to/youtube-tools-mcp/build/index.js"]
+         "args": ["/absolute/path/to/youtube-tools-mcp/build/index.js"],
+         "env": {
+           "YOUTUBE_API_KEY": "your_youtube_api_key_here",
+           "RAPIDAPI_KEY": "your_rapidapi_key_here",
+           "DATABASE_PATH": "/absolute/path/to/youtube-tools-mcp/video_summaries.db"
+         }
        }
      }
    }
    ```
 
-   **Important:** Replace `/absolute/path/to/youtube-tools-mcp` with your actual project path.
+   **Important:**
+   - Replace `/absolute/path/to/youtube-tools-mcp` with your actual project path
+   - Replace the API keys with your actual keys
+   - The `DATABASE_PATH` is optional - if omitted, it defaults to `video_summaries.db` in the project root
 
 7. **Restart Claude Desktop** completely.
 
@@ -171,6 +184,23 @@ Once configured with Claude Desktop, you can use natural language to interact wi
 - Embed URL: `https://www.youtube.com/embed/dQw4w9WgXcQ`
 - Video ID: `dQw4w9WgXcQ`
 
+### Video Summary Examples
+
+**Store a video summary:**
+```
+"Store this summary for video dQw4w9WgXcQ: This is a classic music video featuring Rick Astley's hit song Never Gonna Give You Up."
+```
+
+**Retrieve a stored summary:**
+```
+"Get the stored summary for video ID dQw4w9WgXcQ"
+```
+
+**Check if a summary exists:**
+```
+"Do we have a summary stored for this YouTube video: https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+```
+
 ## 🔧 Available Tools
 
 ### `search_youtube`
@@ -230,6 +260,35 @@ YouTube Transcript for Video ID: W6NZfCO5SIk
 ...
 ```
 
+### `storeVideoSummary`
+
+Store or update a video summary in the local database.
+
+**Parameters:**
+- `videoId` (required): YouTube video ID
+- `summary` (required): Video summary text to store
+
+**Sample Output:**
+```
+Successfully stored summary for video ID: W6NZfCO5SIk
+```
+
+### `fetchExistingVideoSummary`
+
+Fetch an existing video summary from the local database.
+
+**Parameters:**
+- `videoId` (required): YouTube video ID
+
+**Sample Output:**
+```
+Summary for video ID: W6NZfCO5SIk
+
+This is a comprehensive JavaScript tutorial covering fundamentals like variables, functions, and DOM manipulation. Perfect for beginners looking to learn modern JavaScript development.
+```
+
+**Note:** Returns "No summary found" if no summary exists for the given video ID.
+
 ## 🛠️ Development
 
 ### Available Scripts
@@ -247,11 +306,14 @@ YouTube Transcript for Video ID: W6NZfCO5SIk
 ```
 youtube-tools-mcp/
 ├── src/
-│   └── index.ts          # Main MCP server implementation
+│   ├── index.ts          # Main MCP server implementation
+│   └── database.ts       # Database service for video summaries
 ├── build/                # Compiled JavaScript output
 ├── docs/                 # Documentation and examples
 ├── temp/                 # Test files and utilities
+├── video_summaries.db    # Local libsql database (auto-created)
 ├── package.json          # Dependencies and scripts
+├── .env.example          # Environment variables template
 └── README.md            # This file
 ```
 
@@ -270,6 +332,9 @@ pnpm run test-mcp
 
 # Test MCP server with search functionality
 pnpm run test-mcp-search
+
+# Test database functionality (video summary storage/retrieval)
+node temp/test-database-functionality.js
 
 # Manual server test (runs until Ctrl+C)
 pnpm start
@@ -303,7 +368,8 @@ The server provides clear error messages for common scenarios:
 ## 📦 Dependencies
 
 - **[@modelcontextprotocol/sdk](https://github.com/modelcontextprotocol/typescript-sdk)** - Official MCP SDK for TypeScript
-- **[youtube-transcript](https://www.npmjs.com/package/youtube-transcript)** - YouTube transcript extraction library
+- **[@libsql/client](https://github.com/tursodatabase/libsql-client-ts)** - libsql client for local database storage
+- **[axios](https://axios-http.com/)** - HTTP client for API requests
 
 ## 🤝 Contributing
 
